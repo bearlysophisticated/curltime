@@ -18,30 +18,36 @@ spinner()
 ### measuring ###
 run()
 {
-	host=$1
-	attempts=$2
-	avg_time=0
+	local host=$1
+	local attempts=$2
+	local avg_time=0
 
-	for ((idx=1; idx<=$attempts; idx++)) 
-	do
+	for ((idx=1; idx<=$attempts; idx++)); do
 		printf "Attempt $idx of $attempts. Time: ";
 		(curl -w "%{time_total}" -o . -s "$host" > out.txt) &
 		spinner $!
 		read -r t<out.txt
 		printf "$t s\n"
-		avg_time=$(echo "scale=3;$avg_time+$t" | bc)
+		if [ $attempts -gt 1 ]; then avg_time=$(echo "scale=3;$avg_time+$t" | bc); fi
 	done
 
 	rm out.txt
-	avg_time=$(echo "scale=3;$avg_time/$attempts" | bc)
-
-	echo "Average request time: $avg_time s"
+	if [ $attempts -gt 1 ];	then 
+		avg_time=$(echo "scale=3;$avg_time/$attempts" | bc)
+		printf "\nAverage request time: $avg_time s\n"
+	fi
 }
 
 ### main ###
-if [ $# -lt 2 ]
-then
-	echo "Usage: curltime <host> <attempts>"
+if [ $# -lt 1 ]; then
+	printf "Usage:\n\tcurltime <target>\n\tcurltime <target> <attempts>\n"
 else
-	run $1 $2
+	printf "Target: $1\n\n"
+
+	attempts=1
+	if [ $# -eq 2 ]; then
+		let attempts=$2
+	fi
+
+	run $1 $attempts
 fi
